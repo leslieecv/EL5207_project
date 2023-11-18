@@ -2,61 +2,73 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-def read_image(path):
-    img = cv2.imread(path)
-    if img is None:
-        print("Error: could not read image")
-        raise SystemExit
-    return img
+class Coding:
+    def __init__(self, src, mode):
+        if mode == 'text':
+            self.data = src
+            bin_vec = self.text_to_bin(self.data)
+            self.data_bin = self.join_bin(bin_vec)
+        elif mode == 'image':
+            self.data = self.read_image(src)
+            self.data_bin = []
+            for ch in self.data:
+                bin_ch = self.ch_to_bin(ch)
+                bin_vec = self.join_bin(bin_ch)
+                self.data_bin.append(bin_vec)
+                
+    def read_image(self, path):
+        img = cv2.imread(path)
+        if img is None:
+            print("Error: could not read image")
+            raise SystemExit
+        chB, chG, chR = cv2.split(img)
+        return [chB, chG, chR]
+    
+    def join_bin(self, bin_ch):
+        return ''.join(bin_ch)
 
-# cod
-def digit_to_bin(digit):
-    return '{0:08b}'.format(digit)
+    # For image
+    def ch_to_bin(self, ch):
+        ch_flatten = ch.flatten()
+        func = np.vectorize(self.digit_to_bin)
+        ch_bin = func(ch_flatten)
+        vec_bin = ch_bin.flatten()
+        return vec_bin
+    
+    def digit_to_bin(self, digit):
+        return '{0:08b}'.format(digit)
+    
+    # For text
+    def text_to_bin(self, text):
+        func = np.vectorize(self.letter_to_bin)
+        text_bin = func(text)
+        vec_bin = text_bin.flatten()
+        return vec_bin
+    
+    def letter_to_bin(self, letter):
+        byte_array = letter.encode()
+        binary_int = int.from_bytes(byte_array, "big")
+        binary_string = bin(binary_int)
+        binary_string = binary_string[2:].zfill(8)
+        return binary_string
+    
+def main():
+    # En el emisor:
+    print('------ imagen -------')
+    path = 'data/1_14_Imagen2.png'
+    cod = Coding(path, mode='image')
+    cod_ch = cod.data_bin[0]
+    print(cod_ch)
 
-def letter_to_bin(letter):
-    byte_array = letter.encode()
-    binary_int = int.from_bytes(byte_array, "big")
-    binary_string = bin(binary_int)
-    binary_string = binary_string[2:].zfill(8)
-    return binary_string
+    print('------ texto -------')
 
+    text1 = '¡Laboratorio  de  Tecnologías  de  Información  y  de  Comunicación EL5207! Transmisor número 1, primavera 2023.'
+    cod = Coding(text1, mode='text')
+    cod_ch = cod.data_bin
+    print(cod_ch)
 
-# decod
-def bin_to_letter(binary_string):
-    n = int(binary_string, 2)
-    return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode()
+if __name__ == "__main__":
+    main()
 
-def bin_to_digit(binary_string):
-    return int(binary_string, 2)
-
-#Ejemplo de uso
-num_dic= digit_to_bin(8)
-ascii_dic = letter_to_bin('A')
-r_num = bin_to_digit(num_dic)
-r_ascii = bin_to_letter(ascii_dic)
-#print(num_dic, r_num, ascii_dic, r_ascii)
-
-
-def ch_to_bin(ch):
-    ch_flatten = ch.flatten()
-    func = np.vectorize(digit_to_bin)
-    ch_bin = func(ch_flatten)
-    vec_bin = ch_bin.flatten()
-    return vec_bin
-
-def bin_to_ch(vec_bin):
-    n = int(np.sqrt(len(vec_bin)))
-    ch_bin = vec_bin.reshape(n, n, 1)
-    ch = np.vectorize(bin_to_digit)(ch_bin)
-    return ch
-
-# Ejemplo de uso
-path = 'data/1_14_Imagen2.png'
-img = read_image(path)
-img_bin = ch_to_bin(img[:,:,0])
-img_dec = bin_to_ch(img_bin)
-print(img_dec.shape)
-plt.imshow(img_dec, cmap='gray')
-plt.show()
 
 
