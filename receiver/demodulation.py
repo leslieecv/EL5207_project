@@ -6,20 +6,33 @@ Made by: Fernanda Borja, Matías Bustos & Leslie Cárdenas
 import decoding as decode
 #
 import sounddevice as sd
-from scipy.io.wavfile import write
+from scipy.io.wavfile import write, read
 # Global variables
 DURATION = 48 # seconds
 SAMPLE_FREQ = 32000 # hertz
 ANS_DIC = {"y":1, "n":0}
+FREQUENCIES = [[1, 2], [3, 4]] # transmitter [image, text] CHANGE!!!!!!!!!!!
 
-def record(seconds, fs, filename = "output.wav"):
+"""
+Recording function
+Records and stores the data in a .wav file of a given name
+"""
+def record(seconds: int, fs: int, filename = "output.wav"):
     print(f"Recording with fs = {fs} for {seconds} s...")
     myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
     sd.wait()  # Wait until recording is finished
     write(f'{filename}', fs, myrecording)
     print("Audio recorded and saved as {filename}")
     return
-def sync_detect():
+
+"""
+synchrony detection function
+Based on [GIVE PARAMETERS], 
+"""
+def sync_detect(audiofile, freq_list, n = 2):
+    audio = read(audiofile)[1]
+    for freqs in freq_list:
+        pass
     pass
 
 def demod():
