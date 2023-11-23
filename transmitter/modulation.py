@@ -10,14 +10,6 @@ import coding as code
 import sounddevice as sd
 from scipy.io.wavfile import write, read
 
-# Global variables
-DURATION = 48 # seconds
-SAMPLE_FREQ = 32000 # hertz
-ANS_DIC = {"y":1, "n":0}
-FREQUENCIES = [[1, 2], [3, 4]] # transmitter [image, text] CHANGE!!!!!!!!!!!
-
-
-
 # space_freq: frequency for 0
 # mark_freq: frequency for 1
 # baud: bits per second
