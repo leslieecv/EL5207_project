@@ -26,7 +26,7 @@ class Decoding:
     # decod
     def bin_to_letter(self, binary_string):
         n = int(binary_string, 2)
-        return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode()
+        return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode('utf-8', 'ignore')
     
     def text_to_bin(self, text):
         func = np.vectorize(self.bin_to_letter)
@@ -49,8 +49,10 @@ def main():
     text1 = '¡Laboratorio  de  Tecnologías  de  Información  y  de  Comunicación EL5207! Transmisor número 1, primavera 2023.'
     cod = Coding(text1, mode='text')
     cod_ch = cod.data_bin
+    print(type(cod_ch))
     decod = Decoding(cod_ch, mode='text')
     decod_ch = decod.decod_data
+    print(decod_ch)
 
     print('------ imagen -------')
     path = 'data/1_14_Imagen2.png'
