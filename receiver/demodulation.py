@@ -107,19 +107,19 @@ def main():
     print(len(audio))
     # plt.plot(audio)
     # plt.show()
-    for i in range(1):# range(len(FREQUENCIES)): # Both transmitters
+    for i in range(len(FREQUENCIES)): # Both transmitters
         freqs = FREQUENCIES[i]
         # wave = sync_detect(audio, SYNC_FREQ[i])
         wave = audio
         print(len(wave))
         # Text
-        # text_wave0 = filter_freq(audio, freqs[0][0], 20, fs)
-        # text_wave1 = filter_freq(audio, freqs[0][1], 20, fs)
-        # wave_sum = text_wave0 + text_wave1
-        # text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
-        # decod = decode.Decoding(text_bin, mode='text')
-        # decod_ch = decod.decod_data
-        # print(decod_ch)
+        text_wave0 = filter_freq(audio, freqs[0][0], 20, fs)
+        text_wave1 = filter_freq(audio, freqs[0][1], 20, fs)
+        wave_sum = text_wave0 + text_wave1
+        text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
+        decod = decode.Decoding(text_bin, mode='text')
+        decod_ch = decod.decod_data
+        print(decod_ch)
         # Image
         # Red channel
         r_wave0 = filter_freq(wave, freqs[1][0], 20, fs)
