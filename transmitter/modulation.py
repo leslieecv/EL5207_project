@@ -27,9 +27,9 @@ def bfsk_modulate(bit_array, space_freq, mark_freq, baud, sample_rate):
     return signal
 
 # test hola en binario
-sig_010110 = bfsk_modulate([0,1,1,0,1,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0,1,1,0,0,0,1,1,0,0,0,0,1], 1337, 1883, 5, 44100)
-plt.plot(sig_010110)
-plt.show()
+#sig_010110 = bfsk_modulate([0,1,1,0,1,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0,1,1,0,0,0,1,1,0,0,0,0,1], 1337, 1883, 5, 44100)
+#plt.plot(sig_010110)
+#plt.show()
 
 # exportar audio en wav
-sf.write("hola.wav",sig_010110, 44100)
+#sf.write("hola.wav",sig_010110, 44100)
