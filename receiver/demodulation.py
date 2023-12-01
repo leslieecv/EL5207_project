@@ -23,10 +23,10 @@ FREQUENCIES = [
      [3317, 3813],  # G
      [4307, 4803]], # B   
     [[6287, 6783],  # Text  
-     [7277, 7773],  # R
-     [8267, 8763],  # G   
-     [9257, 9753]]] # B   
-BAUD = 16
+     [9257, 9753],  # R
+     [8267, 8763], # G
+     [7277, 7773],]]# B   
+BAUD = 32
 ANS_DIC = {"y":1, "n":0}
 
 """
@@ -100,26 +100,31 @@ def sync_detect(audio, sync_freq):
     wave1 = filter_freq(audio, sync_freq[1], 100, SAMPLE_FREQ)
     wave_sum = wave0 + wave1
     # get the reference
-    ref = bfsk_modulate([1,1,0,0], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
+    ref_init = bfsk_modulate([1, 1, 1, 1], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
+    ref_end = bfsk_modulate([0, 0, 0, 0], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
     # From this we get the peaks
     start = 0
     end = 0
     #
-    corr=[]
-    for i in range(math.floor((len(wave_sum))/len(ref))):
-        y_w = wave_sum[i* len(ref):(i+1) * len(ref)]
-        cor = correlate(ref, y_w, mode='full', method='fft')
-        corr.append(sum(cor**2))
+    corr_init = []
+    corr_end = []
+    for i in range(math.floor((len(wave_sum))/len(ref_init))):
+        y_w = wave_sum[i* len(ref_init):(i+1) * len(ref_init)]
+        cor = correlate(ref_init, y_w, mode='full', method='fft')
+        corr_init.append(sum(cor**2))
+        y_x = wave_sum[i* len(ref_end):(i+1) * len(ref_end)]
+        cor = correlate(ref_end, y_x, mode='full', method='fft')
+        corr_end.append(sum(cor**2)) 
     # return audio[start:end]
-    start = np.where( corr == np.max(corr))[0][0]
-    end = np.where( corr[::-1] == np.max(corr))[0][0]
-    print(start, end)
+    start = np.where( corr_init == np.max(corr_init))[0][0]
+    end = np.where( corr_end == np.max(corr_end))[0][0]
+    # print(start, end)
     # Get the location in sample points
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
     start = int((start + 1)*samples_per_bit*4)
     end = int((end)*samples_per_bit*4)
-    print(start, end)
-    print(len(audio)-start)
+    # print(start, end)
+    # print(len(audio) - start)
     return audio[start:end]
 
 # Assembly of functions
@@ -129,7 +134,7 @@ def main():
     # record(2, SAMPLE_FREQ, filename) 
     # read
     fs, audio = read(filename)
-    print(len(audio))
+    # print(len(audio))
     # plt.plot(audio)
     # plt.show()
     for i in range(len(FREQUENCIES)): # Both transmitters
