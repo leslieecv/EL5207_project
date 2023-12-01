@@ -16,7 +16,7 @@ import math
 # Global variables
 DURATION = 48 # seconds
 SAMPLE_FREQ = 44100 # hertz
-SYNC_FREQ = [[384, 894], [5298, 5792]] # MODIFY
+SYNC_FREQ = [[348, 894], [5298, 5792]] # 
 FREQUENCIES = [
     [[1337, 1883],  # Text
      [2327, 2823],  # R
@@ -26,7 +26,7 @@ FREQUENCIES = [
      [9257, 9753],  # R
      [8267, 8763], # G
      [7277, 7773],]]# B   
-BAUD = 32
+BAUD = 40
 ANS_DIC = {"y":1, "n":0}
 
 """
@@ -93,11 +93,16 @@ def bfsk_modulate(bit_array, space_freq, mark_freq, baud, sample_rate):
             signal = np.append(signal, mark)
     return signal
 
-
-def sync_detect(audio, sync_freq):
+# Aux function, get two max index
+def get_two_max_indices(arr):
+    sorted_indices = np.argsort(arr)
+    max_indices = sorted_indices[-2:]
+    return max_indices
+#
+def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
-    wave0 = filter_freq(audio, sync_freq[0], 100, SAMPLE_FREQ)
-    wave1 = filter_freq(audio, sync_freq[1], 100, SAMPLE_FREQ)
+    wave0 = filter_freq(audio, sync_freq[0], 50, SAMPLE_FREQ)
+    wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
     wave_sum = wave0 + wave1
     # get the reference
     ref_init = bfsk_modulate([1, 1, 1, 1], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
@@ -116,40 +121,51 @@ def sync_detect(audio, sync_freq):
         cor = correlate(ref_end, y_x, mode='full', method='fft')
         corr_end.append(sum(cor**2)) 
     # return audio[start:end]
-    start = np.where( corr_init == np.max(corr_init))[0][0]
-    end = np.where( corr_end == np.max(corr_end))[0][0]
+    if (mode == "img"):
+        start = np.min(get_two_max_indices(corr_init))
+        end = np.min(get_two_max_indices(corr_end))
+    else: # text
+        start = np.max(get_two_max_indices(corr_init))
+        end = np.max(get_two_max_indices(corr_end))
+        # print(end)
     # print(start, end)
     # Get the location in sample points
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
     start = int((start + 1)*samples_per_bit*4)
     end = int((end)*samples_per_bit*4)
+    # plt.plot(corr_init)
+    # plt.show()
+    # plt.plot(corr_end)
+    # plt.show()
     # print(start, end)
     # print(len(audio) - start)
     return audio[start:end]
 
 # Assembly of functions
 def main():
-    filename = 'mod_2img_sync.wav'
+    filename = 'D:\GitHub\EL5207_project\\2img_2txt_sync.wav'
     # listen
     # record(2, SAMPLE_FREQ, filename) 
     # read
     fs, audio = read(filename)
-    # print(len(audio))
-    # plt.plot(audio)
-    # plt.show()
+    titles = []
+    for i in range(len(FREQUENCIES)):
+        freqs = FREQUENCIES[i]
+        wave = sync_detect(audio, SYNC_FREQ[i], mode="text")
+        # Text
+        text_wave0 = filter_freq(wave, freqs[0][0], 20, fs)
+        text_wave1 = filter_freq(wave, freqs[0][1], 20, fs)
+        wave_sum = text_wave0 + text_wave1
+        text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
+        decod = decode.Decoding(text_bin, mode='text')
+        # print(text_bin[-10:])
+        decod_ch = decod.decod_data
+        print(decod_ch)
+        titles.append(decod_ch)
+
     for i in range(len(FREQUENCIES)): # Both transmitters
         freqs = FREQUENCIES[i]
-        wave = sync_detect(audio, SYNC_FREQ[i])
-        # wave = audio
-        # print(len(wave))
-        # Text
-        # text_wave0 = filter_freq(audio, freqs[0][0], 20, fs)
-        # text_wave1 = filter_freq(audio, freqs[0][1], 20, fs)
-        # wave_sum = text_wave0 + text_wave1
-        # text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
-        # decod = decode.Decoding(text_bin, mode='text')
-        # decod_ch = decod.decod_data
-        # print(decod_ch)
+        wave = sync_detect(audio, SYNC_FREQ[i], mode="img")
         # Image
         # Red channel
         r_wave0 = filter_freq(wave, freqs[1][0], 20, fs)
@@ -173,11 +189,9 @@ def main():
         decod = decode.Decoding(colorlist, mode='image')
         decod_ch = decod.decod_data
         plt.imshow(decod_ch, cmap='gray')
+        plt.title(titles[i])
         plt.show()
-        plt.clf()
-
-
-        
+        plt.clf() 
     pass
 
 
