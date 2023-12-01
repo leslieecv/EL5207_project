@@ -11,10 +11,12 @@ import sounddevice as sd
 from scipy.io.wavfile import write, read
 from scipy.signal import correlate
 import matplotlib.pyplot as plt
+from scipy import signal
+import math
 # Global variables
 DURATION = 48 # seconds
 SAMPLE_FREQ = 44100 # hertz
-SYNC_FREQ = [595, 5545] # MODIFY
+SYNC_FREQ = [[384, 894], [5298, 5792]] # MODIFY
 FREQUENCIES = [
     [[1337, 1883],  # Text
      [2327, 2823],  # R
@@ -76,30 +78,53 @@ def fsk_demodulate(raw_signal, space_freq, mark_freq, baud, sample_rate):
 Sync function
 Based on a sync pulse in a given freq, we set the start of each message 
 """
+# Aux function, creator of reference
+def bfsk_modulate(bit_array, space_freq, mark_freq, baud, sample_rate):
+    seconds_per_bit = 1 / baud
+    samples_per_bit = int(sample_rate * seconds_per_bit)
+    t = np.linspace(0, seconds_per_bit, samples_per_bit)
+    space = np.sin(space_freq * 2 * np.pi * t)
+    mark = np.sin(mark_freq * 2 * np.pi * t)
+    signal = np.array([])
+    for bit in bit_array:
+        if bit == 0:
+            signal = np.append(signal, space)
+        elif bit == 1:
+            signal = np.append(signal, mark)
+    return signal
+
+
 def sync_detect(audio, sync_freq):
-    amount = ((3 * SAMPLE_FREQ)/BAUD)
     # Filter in the frequency
-    filtered = filter_freq(audio, sync_freq, 20, SAMPLE_FREQ)
+    wave0 = filter_freq(audio, sync_freq[0], 100, SAMPLE_FREQ)
+    wave1 = filter_freq(audio, sync_freq[1], 100, SAMPLE_FREQ)
+    wave_sum = wave0 + wave1
+    # get the reference
+    ref = bfsk_modulate([1,1,0,0], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
     # From this we get the peaks
-    correlation = correlate(filtered, preamble)
     start = 0
     end = 0
-    value = fsk_demodulate(filtered, 0, sync_freq, 3, SAMPLE_FREQ) 
-    reverse = value[::-1]
-    print(value)
-    for i in range(len(value)):
-        if ((start >= amount) and (end>=amount)):
-            break
-        else:
-            if ((value[i] == '1') and (start < amount)):
-                start+=1
-            if ((reverse[i] == '1') and (end < amount)):
-                end-=1
+    #
+    corr=[]
+    for i in range(math.floor((len(wave_sum))/len(ref))):
+        y_w = wave_sum[i* len(ref):(i+1) * len(ref)]
+        cor = correlate(ref, y_w, mode='full', method='fft')
+        corr.append(sum(cor**2))
+    # return audio[start:end]
+    start = np.where( corr == np.max(corr))[0][0]
+    end = np.where( corr[::-1] == np.max(corr))[0][0]
+    print(start, end)
+    # Get the location in sample points
+    samples_per_bit = int(SAMPLE_FREQ / BAUD)
+    start = int((start + 1)*samples_per_bit*4)
+    end = int((end)*samples_per_bit*4)
+    print(start, end)
+    print(len(audio)-start)
     return audio[start:end]
 
 # Assembly of functions
 def main():
-    filename = 'mod_img.wav'
+    filename = 'mod_2img_sync.wav'
     # listen
     # record(2, SAMPLE_FREQ, filename) 
     # read
@@ -109,17 +134,17 @@ def main():
     # plt.show()
     for i in range(len(FREQUENCIES)): # Both transmitters
         freqs = FREQUENCIES[i]
-        # wave = sync_detect(audio, SYNC_FREQ[i])
-        wave = audio
-        print(len(wave))
+        wave = sync_detect(audio, SYNC_FREQ[i])
+        # wave = audio
+        # print(len(wave))
         # Text
-        text_wave0 = filter_freq(audio, freqs[0][0], 20, fs)
-        text_wave1 = filter_freq(audio, freqs[0][1], 20, fs)
-        wave_sum = text_wave0 + text_wave1
-        text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
-        decod = decode.Decoding(text_bin, mode='text')
-        decod_ch = decod.decod_data
-        print(decod_ch)
+        # text_wave0 = filter_freq(audio, freqs[0][0], 20, fs)
+        # text_wave1 = filter_freq(audio, freqs[0][1], 20, fs)
+        # wave_sum = text_wave0 + text_wave1
+        # text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
+        # decod = decode.Decoding(text_bin, mode='text')
+        # decod_ch = decod.decod_data
+        # print(decod_ch)
         # Image
         # Red channel
         r_wave0 = filter_freq(wave, freqs[1][0], 20, fs)
@@ -138,16 +163,13 @@ def main():
         b_sum = b_wave0 + b_wave1
         b_bin = fsk_demodulate(b_sum, freqs[3][0], freqs[3][1], BAUD, fs)
         # Image Assembly c:
-        print(len(r_bin), len(g_bin), len(b_bin))
+        # print(len(r_bin), len(g_bin), len(b_bin))
         colorlist = [r_bin, g_bin, b_bin]
         decod = decode.Decoding(colorlist, mode='image')
         decod_ch = decod.decod_data
         plt.imshow(decod_ch, cmap='gray')
         plt.show()
-
-
-        
-
+        plt.clf()
 
 
         
