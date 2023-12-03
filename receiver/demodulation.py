@@ -189,7 +189,9 @@ def main():
         decod = decode.Decoding(colorlist, mode='image')
         decod_ch = decod.decod_data
         plt.imshow(decod_ch, cmap='gray')
-        plt.title(titles[i])
+        plt.title(titles[i], fontsize=20)
+        plt.axis('off')
+        # plt.savefig(f"result{1 + i}.pdf", bbox_inches='tight')
         plt.show()
         plt.clf() 
     pass
