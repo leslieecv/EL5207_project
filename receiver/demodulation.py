@@ -99,6 +99,40 @@ def get_two_max_indices(arr):
     max_indices = sorted_indices[-2:]
     return max_indices
 #
+def sample_sync(audio, max_corr, max_idx, ref):
+    audio_size = len(audio)
+    samples_per_bit = int(SAMPLE_FREQ / BAUD)
+    last_starter = (audio_size - 1)*4*samples_per_bit
+    # Left
+    for i in range((samples_per_bit<<2) - 1):
+        if((max_idx == 0)):
+            break
+        else:
+            y_w = audio[max_idx - 1:max_idx - 1 + len(ref)]
+            cor = correlate(ref, y_w, mode='full', method='fft')
+            if ((sum(cor**2)/max_corr) > 1.1):
+                print(sum(cor**2)/max_corr)
+                max_corr = sum(cor**2)
+                max_idx = max_idx - 1
+            else:
+                print(f"i break {(sum(cor**2)/max_corr)}")
+                break
+    # Right
+    for i in range((samples_per_bit << 2) - 1):
+        if((max_idx >= last_starter)):
+            break
+        else:
+            y_w = audio[max_idx + 1:max_idx + 1 + len(ref)]
+            cor = correlate(ref, y_w, mode='full', method='fft')
+            if ((sum(cor**2)/max_corr) > 1.1):
+                print(sum(cor**2)/max_corr)
+                max_corr = sum(cor**2)
+                max_idx = max_idx + 1
+            else:
+                print(f"i break {(sum(cor**2)/max_corr)}")
+                break
+    return max_idx
+#
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
     wave0 = filter_freq(audio, sync_freq[0], 50, SAMPLE_FREQ)
@@ -127,19 +161,18 @@ def sync_detect(audio, sync_freq, mode = "img"):
     else: # text
         start = np.max(get_two_max_indices(corr_init))
         end = np.max(get_two_max_indices(corr_end))
-        # print(end)
-    # print(start, end)
+    start_corr = corr_init[start]
+    end_corr = corr_end[end]
     # Get the location in sample points
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
-    start = int((start + 1)*samples_per_bit*4)
-    end = int((end)*samples_per_bit*4)
-    # plt.plot(corr_init)
-    # plt.show()
-    # plt.plot(corr_end)
-    # plt.show()
-    # print(start, end)
-    # print(len(audio) - start)
-    return audio[start:end]
+    bit_start = int(((start + 1)*samples_per_bit)<<2)
+    bit_end = int(((end)*samples_per_bit)<<2)
+    # Check the maximum bit-wise locally
+    bit_start = sample_sync(wave_sum, start_corr, bit_start, ref_init)
+    bit_end = sample_sync(wave_sum, end_corr, bit_end, ref_end)
+
+    print(bit_start, bit_end)
+    return audio[bit_start:bit_end]
 
 # Assembly of functions
 def main():
