@@ -144,62 +144,47 @@ def sync_detect(audio, sync_freq, mode = "img"):
     points = np.linspace(0, 1, int(SAMPLE_FREQ*1))
     init0 = signal.chirp(points, sync_freq[0], 1, np.mean(sync_freq))
     init1 = signal.chirp(points, sync_freq[1], 1, np.mean(sync_freq))
-    ref_init = init0#np.append(init0, init1)
-    ref_end = init1#np.append(init1, init0)
-
-    # ref_init = bfsk_modulate([1, 1, 1, 1], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
-    # ref_end = bfsk_modulate([0, 0, 0, 0], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
-    # From this we get the peaks
+    ref_init = init0
+    ref_end = init1
     start = 0
     end = 0
-    #
-    # corr_init = []
-    # corr_end = []
-    corr_init = correlate(wave_sum, ref_init, mode='valid', method='fft')
-    corr_end = correlate(wave_sum, ref_end, mode='valid', method='fft')
+    corr_init = np.abs(correlate(wave_sum, ref_init, mode='valid', method='fft'))
+    corr_end = np.abs(correlate(wave_sum, ref_end, mode='valid', method='fft'))
+    np.save("enviar.npy", corr_end)
     # Find peaks
     if (mode == "img"):
-        # peaks, _ = signal.find_peaks(corr_init)
-        # print(peaks)
-        # start = np.min(get_two_max_indices(corr_init))
-        # end = np.min(get_two_max_indices(corr_end))
-        start, _ = signal.find_peaks(corr_init, distance = 44100, height = 2e8)
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
         start = start[0]
-        # print(peaks)
-        # start = np.max(get_two_max_indices(corr_init))
-        end, _ = signal.find_peaks(corr_end, distance = 44100, height = 2e8)
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
         end = end[0]
     else: # text
-        start, _ = signal.find_peaks(corr_init, distance = 44100, height = 2e8)
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
+        print(start)
         start = start[1]
-        # print(peaks)
-        # start = np.max(get_two_max_indices(corr_init))
-        end, _ = signal.find_peaks(corr_end, distance = 44100, height = 2e8)
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
         end = end[1]
-        # end = np.max(get_two_max_indices(corr_end))
-        print(f"La ventana con correlacion maxima parte en {start} y termina en {end}")
+        # print(f"La ventana con correlacion maxima parte en {start} y termina en {end}")
     # Get the location in sample points
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
-    bit_start = start#int(((start + 1)*len(ref_init)))
-    bit_end = end#int(((end)*len(ref_init)))
-    # Check the maximum bit-wise locally
-    # bit_start = sample_sync(wave_sum, start_corr, bit_start, ref_init)
-    # bit_end = sample_sync(wave_sum, end_corr, bit_end, ref_end)
-    # print(len(corr_init), len(corr_end))
-    # plt.plot(corr_init, "o")
-    # plt.plot(corr_end, "o")
-    # plt.savefig("ewe.png", dpi = 300)
-    plt.clf()
+    bit_start = start
+    bit_end = end
+    # np.save("enviar.npy", corr_end)
+    # plt.plot(corr_init[350000:400000], "o")
+    # plt.plot(corr_end[350000:400000], "o")
+    # plt.savefig(f"test_{mode}.png", dpi = 300)
+    # plt.show()
+    # plt.clf()
     print(bit_start, bit_end)
     return audio[bit_start+len(ref_init):bit_end]
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\chirp_desfase.wav'
+    filename = 'D:\GitHub\EL5207_project\\final.wav'
     # listen
-    # record(2, SAMPLE_FREQ, filename) 
+    # record(DURATION, SAMPLE_FREQ, filename) 
     # read
     fs, audio = read(filename)
+    
     titles = []
     for i in range(len(FREQUENCIES)):
         freqs = FREQUENCIES[i]
