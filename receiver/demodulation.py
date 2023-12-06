@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import math
 # Global variables
-DURATION = 48 # seconds
+DURATION = 120 # seconds
 SAMPLE_FREQ = 44100 # hertz
 SYNC_FREQ = [[348, 894], [5298, 5792]] # 
 FREQUENCIES = [
@@ -104,7 +104,7 @@ def sample_sync(audio, max_corr, max_idx, ref):
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
     last_starter = (audio_size - 1)*4*samples_per_bit
     # Left
-    for i in range((samples_per_bit<<2) - 1):
+    for i in range(SAMPLE_FREQ>>2 - 1):
         if((max_idx == 0)):
             break
         else:
@@ -118,7 +118,7 @@ def sample_sync(audio, max_corr, max_idx, ref):
                 print(f"i break {(sum(cor**2)/max_corr)}")
                 break
     # Right
-    for i in range((samples_per_bit << 2) - 1):
+    for i in range(SAMPLE_FREQ>>2 - 1):
         if((max_idx >= last_starter)):
             break
         else:
@@ -135,48 +135,67 @@ def sample_sync(audio, max_corr, max_idx, ref):
 #
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
-    wave0 = filter_freq(audio, sync_freq[0], 50, SAMPLE_FREQ)
-    wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
-    wave_sum = wave0 + wave1
+    wave0 = filter_freq(audio, np.mean(sync_freq), 600, SAMPLE_FREQ)
+    # _, _, _, _ = plt.specgram(wave0, Fs = SAMPLE_FREQ, scale = 'linear')
+    # plt.show()
+    # wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
+    wave_sum = wave0 #+ wave1
     # get the reference
-    ref_init = bfsk_modulate([1, 1, 1, 1], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
-    ref_end = bfsk_modulate([0, 0, 0, 0], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
+    points = np.linspace(0, 1, int(SAMPLE_FREQ*1))
+    init0 = signal.chirp(points, sync_freq[0], 1, np.mean(sync_freq))
+    init1 = signal.chirp(points, sync_freq[1], 1, np.mean(sync_freq))
+    ref_init = init0#np.append(init0, init1)
+    ref_end = init1#np.append(init1, init0)
+
+    # ref_init = bfsk_modulate([1, 1, 1, 1], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
+    # ref_end = bfsk_modulate([0, 0, 0, 0], sync_freq[0], sync_freq[1], BAUD, SAMPLE_FREQ)
     # From this we get the peaks
     start = 0
     end = 0
     #
-    corr_init = []
-    corr_end = []
-    for i in range(math.floor((len(wave_sum))/len(ref_init))):
-        y_w = wave_sum[i* len(ref_init):(i+1) * len(ref_init)]
-        cor = correlate(ref_init, y_w, mode='full', method='fft')
-        corr_init.append(sum(cor**2))
-        y_x = wave_sum[i* len(ref_end):(i+1) * len(ref_end)]
-        cor = correlate(ref_end, y_x, mode='full', method='fft')
-        corr_end.append(sum(cor**2)) 
-    # return audio[start:end]
+    # corr_init = []
+    # corr_end = []
+    corr_init = correlate(wave_sum, ref_init, mode='valid', method='fft')
+    corr_end = correlate(wave_sum, ref_end, mode='valid', method='fft')
+    # Find peaks
     if (mode == "img"):
-        start = np.min(get_two_max_indices(corr_init))
-        end = np.min(get_two_max_indices(corr_end))
+        # peaks, _ = signal.find_peaks(corr_init)
+        # print(peaks)
+        # start = np.min(get_two_max_indices(corr_init))
+        # end = np.min(get_two_max_indices(corr_end))
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = 2e8)
+        start = start[0]
+        # print(peaks)
+        # start = np.max(get_two_max_indices(corr_init))
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = 2e8)
+        end = end[0]
     else: # text
-        start = np.max(get_two_max_indices(corr_init))
-        end = np.max(get_two_max_indices(corr_end))
-    start_corr = corr_init[start]
-    end_corr = corr_end[end]
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = 2e8)
+        start = start[1]
+        # print(peaks)
+        # start = np.max(get_two_max_indices(corr_init))
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = 2e8)
+        end = end[1]
+        # end = np.max(get_two_max_indices(corr_end))
+        print(f"La ventana con correlacion maxima parte en {start} y termina en {end}")
     # Get the location in sample points
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
-    bit_start = int(((start + 1)*samples_per_bit)<<2)
-    bit_end = int(((end)*samples_per_bit)<<2)
+    bit_start = start#int(((start + 1)*len(ref_init)))
+    bit_end = end#int(((end)*len(ref_init)))
     # Check the maximum bit-wise locally
-    bit_start = sample_sync(wave_sum, start_corr, bit_start, ref_init)
-    bit_end = sample_sync(wave_sum, end_corr, bit_end, ref_end)
-
+    # bit_start = sample_sync(wave_sum, start_corr, bit_start, ref_init)
+    # bit_end = sample_sync(wave_sum, end_corr, bit_end, ref_end)
+    # print(len(corr_init), len(corr_end))
+    # plt.plot(corr_init, "o")
+    # plt.plot(corr_end, "o")
+    # plt.savefig("ewe.png", dpi = 300)
+    plt.clf()
     print(bit_start, bit_end)
-    return audio[bit_start:bit_end]
+    return audio[bit_start+len(ref_init):bit_end]
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\2img_2txt_sync.wav'
+    filename = 'D:\GitHub\EL5207_project\\chirp_desfase.wav'
     # listen
     # record(2, SAMPLE_FREQ, filename) 
     # read
