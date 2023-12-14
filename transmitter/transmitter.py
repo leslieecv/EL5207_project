@@ -2,6 +2,7 @@ import coding as code
 import modulation
 import soundfile as sf
 import numpy as np
+from scipy import signal
 
 def transmitter(path,text,baud, f_sync1, f_sync2, f_txt1, f_txt2, f_img_b1, f_img_b2, f_img_g1, f_img_g2, f_img_r1, f_img_r2):
     cod_img = code.Coding(path, mode='image')
@@ -25,8 +26,11 @@ def transmitter(path,text,baud, f_sync1, f_sync2, f_txt1, f_txt2, f_img_b1, f_im
 
 
     #noise_mod = modulation.bfsk_modulate(noise, 400, 600, baud, 44100)
-    sync_mod_init = modulation.bfsk_modulate(sync, f_sync1, f_sync2, baud, 44100)
-    sync_mod_end  = modulation.bfsk_modulate(sync2, f_sync1, f_sync2, baud, 44100)
+    # sync_mod_init = modulation.bfsk_modulate(sync, f_sync1, f_sync2, baud, 44100)
+    # sync_mod_end  = modulation.bfsk_modulate(sync2, f_sync1, f_sync2, baud, 44100)
+    points = np.linspace(0, 1, int(44100*1))
+    sync_mod_init = signal.chirp(points, f_sync1, 1, np.mean([f_sync1, f_sync2]))
+    sync_mod_end  = signal.chirp(points, f_sync2, 1, np.mean([f_sync1, f_sync2]))
     mod_img_0 = modulation.bfsk_modulate(bin_img_0, f_img_b1, f_img_b2, baud, 44100)
     mod_img_1 = modulation.bfsk_modulate(bin_img_1, f_img_g1, f_img_g2, baud, 44100)
     mod_img_2 = modulation.bfsk_modulate(bin_img_2, f_img_r1, f_img_r2, baud, 44100)
@@ -80,5 +84,5 @@ if len(imagen2) < n_max:
     imagen2 = np.concatenate((imagen2, np.zeros(n_max-len(imagen2))), axis=None)
 
 mod_img = imagen1 + imagen2
-sf.write("2img_2txt_sync.wav",mod_img, 44100)
+sf.write("tests//test3.wav",mod_img, 44100)
 

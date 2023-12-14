@@ -43,7 +43,7 @@ def record(seconds: int, fs: int, filename = "output.wav"):
 """
 Filtering function
 """
-def filter_freq(signal, freq, window, fs = SAMPLE_FREQ, order = 5):
+def filter_freq(signal, freq, window, fs = SAMPLE_FREQ, order = 8):
     filter = scipy.signal.butter(order, [freq - window, freq + window], "bandpass", fs = fs, output = "sos")
     filtered = scipy.signal.sosfiltfilt(filter, signal)
     return filtered
@@ -135,7 +135,7 @@ def sample_sync(audio, max_corr, max_idx, ref):
 #
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
-    wave0 = filter_freq(audio, np.mean(sync_freq), 600, SAMPLE_FREQ)
+    wave0 = filter_freq(audio, np.mean(sync_freq), 200, SAMPLE_FREQ)
     # _, _, _, _ = plt.specgram(wave0, Fs = SAMPLE_FREQ, scale = 'linear')
     # plt.show()
     # wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
@@ -158,10 +158,10 @@ def sync_detect(audio, sync_freq, mode = "img"):
         end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
         end = end[0]
     else: # text
-        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.2, np.max(corr_init)))
         print(start)
         start = start[1]
-        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.1, np.max(corr_end)))
         print(end)
         end = end[1]
         # print(f"La ventana con correlacion maxima parte en {start} y termina en {end}")
@@ -170,17 +170,17 @@ def sync_detect(audio, sync_freq, mode = "img"):
     bit_start = start
     bit_end = end
     # np.save("enviar.npy", corr_end)
-    plt.plot(corr_init, "o")
+    # plt.plot(corr_init, "o")
     # plt.plot(corr_end, "o")
     # plt.savefig(f"test_{mode}.png", dpi = 300)
-    plt.show()
-    plt.clf()
+    # plt.show()
+    # plt.clf()
     print(bit_start, bit_end)
     return audio[bit_start+len(ref_init):bit_end]
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\realtest.wav'
+    filename = 'D:\GitHub\EL5207_project\\tests\\secondtest.wav'
     # listen
     # record(DURATION, SAMPLE_FREQ, filename) 
     # read
@@ -227,7 +227,7 @@ def main():
         decod = decode.Decoding(colorlist, mode='image')
         decod_ch = decod.decod_data
         plt.imshow(decod_ch, cmap='gray')
-        plt.title(titles[i], fontsize=20)
+        # plt.title(titles[i], fontsize=20)
         plt.axis('off')
         # plt.savefig(f"result{1 + i}.pdf", bbox_inches='tight')
         plt.show()
