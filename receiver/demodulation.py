@@ -162,6 +162,7 @@ def sync_detect(audio, sync_freq, mode = "img"):
         print(start)
         start = start[1]
         end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
+        print(end)
         end = end[1]
         # print(f"La ventana con correlacion maxima parte en {start} y termina en {end}")
     # Get the location in sample points
@@ -169,17 +170,17 @@ def sync_detect(audio, sync_freq, mode = "img"):
     bit_start = start
     bit_end = end
     # np.save("enviar.npy", corr_end)
-    # plt.plot(corr_init[350000:400000], "o")
-    # plt.plot(corr_end[350000:400000], "o")
+    plt.plot(corr_init, "o")
+    # plt.plot(corr_end, "o")
     # plt.savefig(f"test_{mode}.png", dpi = 300)
-    # plt.show()
-    # plt.clf()
+    plt.show()
+    plt.clf()
     print(bit_start, bit_end)
     return audio[bit_start+len(ref_init):bit_end]
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\final.wav'
+    filename = 'D:\GitHub\EL5207_project\\realtest.wav'
     # listen
     # record(DURATION, SAMPLE_FREQ, filename) 
     # read
@@ -190,8 +191,8 @@ def main():
         freqs = FREQUENCIES[i]
         wave = sync_detect(audio, SYNC_FREQ[i], mode="text")
         # Text
-        text_wave0 = filter_freq(wave, freqs[0][0], 20, fs)
-        text_wave1 = filter_freq(wave, freqs[0][1], 20, fs)
+        text_wave0 = filter_freq(wave, freqs[0][0], 100, fs)
+        text_wave1 = filter_freq(wave, freqs[0][1], 100, fs)
         wave_sum = text_wave0 + text_wave1
         text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
         decod = decode.Decoding(text_bin, mode='text')
@@ -205,19 +206,19 @@ def main():
         wave = sync_detect(audio, SYNC_FREQ[i], mode="img")
         # Image
         # Red channel
-        r_wave0 = filter_freq(wave, freqs[1][0], 20, fs)
-        r_wave1 = filter_freq(wave, freqs[1][1], 20, fs)
+        r_wave0 = filter_freq(wave, freqs[1][0], 100, fs)
+        r_wave1 = filter_freq(wave, freqs[1][1], 100, fs)
         r_sum = r_wave0 + r_wave1
         r_bin = fsk_demodulate(r_sum, freqs[1][0], freqs[1][1], BAUD, fs)
         # print(r_bin)
         # Green channel
-        g_wave0 = filter_freq(wave, freqs[2][0], 20, fs)
-        g_wave1 = filter_freq(wave, freqs[2][1], 20, fs)
+        g_wave0 = filter_freq(wave, freqs[2][0], 100, fs)
+        g_wave1 = filter_freq(wave, freqs[2][1], 100, fs)
         g_sum = g_wave0 + g_wave1
         g_bin = fsk_demodulate(g_sum, freqs[2][0], freqs[2][1], BAUD, fs)
         # Blue channel
-        b_wave0 = filter_freq(wave, freqs[3][0], 20, fs)
-        b_wave1 = filter_freq(wave, freqs[3][1], 20, fs)
+        b_wave0 = filter_freq(wave, freqs[3][0], 100, fs)
+        b_wave1 = filter_freq(wave, freqs[3][1], 100, fs)
         b_sum = b_wave0 + b_wave1
         b_bin = fsk_demodulate(b_sum, freqs[3][0], freqs[3][1], BAUD, fs)
         # Image Assembly c:
