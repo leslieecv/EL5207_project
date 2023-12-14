@@ -18,14 +18,14 @@ DURATION = 120 # seconds
 SAMPLE_FREQ = 44100 # hertz
 SYNC_FREQ = [[348, 894], [5298, 5792]] # 
 FREQUENCIES = [
-    [[1337, 1883],  # Text
-     [2327, 2823],  # R
-     [3317, 3813],  # G
-     [4307, 4803]], # B   
-    [[6287, 6783],  # Text  
-     [9257, 9753],  # R
-     [8267, 8763], # G
-     [7277, 7773],]]# B   
+    [[1337, 3317],  # Text
+     [1883, 3813],  # R
+     [2327, 4307],  # G
+     [2823, 4803]], # B
+    [[6287, 8267],  # Text
+     [6783, 8763],  # R
+     [7277, 9257], # G
+     [7773, 9753],]] # B
 BAUD = 40
 ANS_DIC = {"y":1, "n":0}
 
@@ -135,7 +135,7 @@ def sample_sync(audio, max_corr, max_idx, ref):
 #
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
-    wave0 = filter_freq(audio, np.mean(sync_freq), 200, SAMPLE_FREQ)
+    wave0 = filter_freq(audio, np.mean(sync_freq), 100, SAMPLE_FREQ)
     # _, _, _, _ = plt.specgram(wave0, Fs = SAMPLE_FREQ, scale = 'linear')
     # plt.show()
     # wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
@@ -150,13 +150,19 @@ def sync_detect(audio, sync_freq, mode = "img"):
     end = 0
     corr_init = np.abs(correlate(wave_sum, ref_init, mode='valid', method='fft'))
     corr_end = np.abs(correlate(wave_sum, ref_end, mode='valid', method='fft'))
-    np.save("enviar.npy", corr_end)
+    samples_per_bit = int(SAMPLE_FREQ / BAUD)
     # Find peaks
     if (mode == "img"):
         start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
         start = start[0]
         end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
         end = end[0]
+        while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
+            if ((end - (start + len(ref_init))) >= (samples_per_bit*4)):
+                end+=1
+            else:
+                end-=1
+  
     else: # text
         start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.2, np.max(corr_init)))
         print(start)
@@ -164,9 +170,14 @@ def sync_detect(audio, sync_freq, mode = "img"):
         end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.1, np.max(corr_end)))
         print(end)
         end = end[1]
+
+        while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
+            if ((end - (start + len(ref_init))) >= (samples_per_bit*4)):
+                end+=1
+            else:
+                end-=1
         # print(f"La ventana con correlacion maxima parte en {start} y termina en {end}")
     # Get the location in sample points
-    samples_per_bit = int(SAMPLE_FREQ / BAUD)
     bit_start = start
     bit_end = end
     # np.save("enviar.npy", corr_end)
@@ -176,18 +187,26 @@ def sync_detect(audio, sync_freq, mode = "img"):
     # plt.show()
     # plt.clf()
     print(bit_start, bit_end)
-    return audio[bit_start+len(ref_init):bit_end]
+    return audio[bit_start + len(ref_init) :bit_end]
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\tests\\secondtest.wav'
+    filename = 'D:\GitHub\EL5207_project\\tests\\thirdtest.wav'
     # listen
     # record(DURATION, SAMPLE_FREQ, filename) 
     # read
     fs, audio = read(filename)
-    
+    # f1 = 'C:\\Users\\borja\\OneDrive\\Escritorio\\emisores\\emisor1.wav'
+    # f2 = 'C:\\Users\\borja\\OneDrive\\Escritorio\\emisores\\emisor2.wav'
+    # fs, audio1 = read(f1)
+    # fs, audio2 = read(f2)
+    # audio2 = np.append(np.zeros(4743088 - 2944624), audio2)
+    # print(type(audio1))
+    # audio = audio1  + audio2
+    print(len(audio))
     titles = []
     for i in range(len(FREQUENCIES)):
+        
         freqs = FREQUENCIES[i]
         wave = sync_detect(audio, SYNC_FREQ[i], mode="text")
         # Text
