@@ -135,7 +135,7 @@ def sample_sync(audio, max_corr, max_idx, ref):
 #
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
-    wave0 = filter_freq(audio, np.mean(sync_freq), np.mean(sync_freq) - 1, SAMPLE_FREQ)
+    wave0 = filter_freq(audio, np.mean(sync_freq), np.mean(sync_freq)/2, SAMPLE_FREQ)
     # _, _, _, _ = plt.specgram(wave0, Fs = SAMPLE_FREQ, scale = 'linear')
     # plt.show()
     # wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
@@ -153,9 +153,9 @@ def sync_detect(audio, sync_freq, mode = "img"):
     samples_per_bit = int(SAMPLE_FREQ / BAUD)
     # Find peaks
     if (mode == "img"):
-        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.4, np.max(corr_init)))
         start = start[0]
-        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.1, np.max(corr_end)))
         end = end[0]
         while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
             if ((end - (start + len(ref_init)))%(samples_per_bit*8) > (samples_per_bit*4)):
@@ -191,19 +191,20 @@ def sync_detect(audio, sync_freq, mode = "img"):
 
 # Assembly of functions
 def main():
-    # filename = 'D:\GitHub\EL5207_project\\tests\\fourthtest36.wav'
+    filename = 'D:\GitHub\EL5207_project\\tests\\fourthtest36.wav'
     # listen
     # record(DURATION, SAMPLE_FREQ, filename) 
     # read
-    # fs, audio = read(filename)
-    f1 = 'd:\\test360.wav'
-    f2 = 'd:\\test361.wav'
-    fs, audio1 = read(f1)
-    fs, audio2 = read(f2)
-    audio2 = np.append(np.zeros(len(audio1) - len(audio2)), audio2)
-    print(type(audio1))
-    audio = audio1  + audio2
-    print(len(audio))
+    fs, audio = read(filename)
+    # f1 = 'd:\\test360.wav'
+    # f2 = 'd:\\test361.wav'
+    # fs, audio1 = read(f1)
+    # fs, audio2 = read(f2)
+    # audio2 = np.append(np.zeros(len(audio1) - len(audio2)), audio2)
+    # print(type(audio1))
+    # audio = audio1  + audio2
+    # print(len(audio))
+    
     
     titles = []
     for i in range(len(FREQUENCIES)):
