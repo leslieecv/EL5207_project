@@ -22,7 +22,7 @@ class Coding:
             print("Error: could not read image")
             raise SystemExit
         chB, chG, chR = cv2.split(img)
-        return [chB, chG, chR]
+        return [chR, chG, chB]
     
     def join_bin(self, bin_ch):
         return ''.join(bin_ch)
