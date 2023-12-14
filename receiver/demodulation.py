@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import math
 # Global variables
-DURATION = 120 # seconds
+DURATION = 135 # seconds
 SAMPLE_FREQ = 44100 # hertz
 SYNC_FREQ = [[348, 894], [5298, 5792]] # 
 FREQUENCIES = [
@@ -26,7 +26,7 @@ FREQUENCIES = [
      [6783, 8763],  # R
      [7277, 9257], # G
      [7773, 9753],]] # B
-BAUD = 42
+BAUD = 36
 ANS_DIC = {"y":1, "n":0}
 
 """
@@ -164,10 +164,10 @@ def sync_detect(audio, sync_freq, mode = "img"):
                 end-=1
   
     else: # text
-        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.2, np.max(corr_init)))
+        start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
         print(start)
         start = start[1]
-        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.1, np.max(corr_end)))
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
         print(end)
         end = end[1]
 
@@ -191,19 +191,20 @@ def sync_detect(audio, sync_freq, mode = "img"):
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\tests\\fourthtest.wav'
+    # filename = 'D:\GitHub\EL5207_project\\tests\\fourthtest36.wav'
     # listen
     # record(DURATION, SAMPLE_FREQ, filename) 
     # read
-    fs, audio = read(filename)
-    # f1 = 'C:\\Users\\borja\\OneDrive\\Escritorio\\emisores\\emisor1.wav'
-    # f2 = 'C:\\Users\\borja\\OneDrive\\Escritorio\\emisores\\emisor2.wav'
-    # fs, audio1 = read(f1)
-    # fs, audio2 = read(f2)
-    # audio2 = np.append(np.zeros(4743088 - 2944624), audio2)
-    # print(type(audio1))
-    # audio = audio1  + audio2
+    # fs, audio = read(filename)
+    f1 = 'd:\\test360.wav'
+    f2 = 'd:\\test361.wav'
+    fs, audio1 = read(f1)
+    fs, audio2 = read(f2)
+    audio2 = np.append(np.zeros(len(audio1) - len(audio2)), audio2)
+    print(type(audio1))
+    audio = audio1  + audio2
     print(len(audio))
+    
     titles = []
     for i in range(len(FREQUENCIES)):
         
