@@ -99,40 +99,6 @@ def get_two_max_indices(arr):
     max_indices = sorted_indices[-2:]
     return max_indices
 #
-def sample_sync(audio, max_corr, max_idx, ref):
-    audio_size = len(audio)
-    samples_per_bit = int(SAMPLE_FREQ / BAUD)
-    last_starter = (audio_size - 1)*4*samples_per_bit
-    # Left
-    for i in range(SAMPLE_FREQ>>2 - 1):
-        if((max_idx == 0)):
-            break
-        else:
-            y_w = audio[max_idx - 1:max_idx - 1 + len(ref)]
-            cor = correlate(ref, y_w, mode='full', method='fft')
-            if ((sum(cor**2)/max_corr) > 1.1):
-                print(sum(cor**2)/max_corr)
-                max_corr = sum(cor**2)
-                max_idx = max_idx - 1
-            else:
-                print(f"i break {(sum(cor**2)/max_corr)}")
-                break
-    # Right
-    for i in range(SAMPLE_FREQ>>2 - 1):
-        if((max_idx >= last_starter)):
-            break
-        else:
-            y_w = audio[max_idx + 1:max_idx + 1 + len(ref)]
-            cor = correlate(ref, y_w, mode='full', method='fft')
-            if ((sum(cor**2)/max_corr) > 1.1):
-                print(sum(cor**2)/max_corr)
-                max_corr = sum(cor**2)
-                max_idx = max_idx + 1
-            else:
-                print(f"i break {(sum(cor**2)/max_corr)}")
-                break
-    return max_idx
-#
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
     wave0 = filter_freq(audio, np.mean(sync_freq), np.mean(sync_freq)/2, SAMPLE_FREQ)
@@ -155,7 +121,7 @@ def sync_detect(audio, sync_freq, mode = "img"):
     if (mode == "img"):
         start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.4, np.max(corr_init)))
         start = start[0]
-        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.1, np.max(corr_end)))
+        end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.4, np.max(corr_end)))
         end = end[0]
         while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
             if ((end - (start + len(ref_init)))%(samples_per_bit*8) > (samples_per_bit*4)):
@@ -165,10 +131,10 @@ def sync_detect(audio, sync_freq, mode = "img"):
   
     else: # text
         start, _ = signal.find_peaks(corr_init, distance = 44100, height = (np.max(corr_init)*0.8, np.max(corr_init)))
-        print(start)
+        # print(start)
         start = start[1]
         end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
-        print(end)
+        # print(end)
         end = end[1]
 
         while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
@@ -186,7 +152,7 @@ def sync_detect(audio, sync_freq, mode = "img"):
     # plt.savefig(f"test_{mode}.png", dpi = 300)
     # plt.show()
     # plt.clf()
-    print(bit_start, bit_end)
+    # print(bit_start, bit_end)
     return audio[bit_start + len(ref_init) :bit_end]
 
 # Assembly of functions
@@ -204,7 +170,7 @@ def main():
     # print(type(audio1))
     # audio = audio1  + audio2
     # print(len(audio))
-    
+
     
     titles = []
     for i in range(len(FREQUENCIES)):
@@ -216,6 +182,8 @@ def main():
         text_wave1 = filter_freq(wave, freqs[0][1], 100, fs)
         wave_sum = text_wave0 + text_wave1
         text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
+        print(text_bin)
+        # np.save(f'bins/received_txt{i+1}.npy', text_bin)
         decod = decode.Decoding(text_bin, mode='text')
         # print(text_bin[-10:])
         decod_ch = decod.decod_data
@@ -231,17 +199,20 @@ def main():
         r_wave1 = filter_freq(wave, freqs[1][1], 100, fs)
         r_sum = r_wave0 + r_wave1
         r_bin = fsk_demodulate(r_sum, freqs[1][0], freqs[1][1], BAUD, fs)
+        # np.save(f'bins/received_rch{i+1}.npy', r_bin)
         # print(r_bin)
         # Green channel
         g_wave0 = filter_freq(wave, freqs[2][0], 100, fs)
         g_wave1 = filter_freq(wave, freqs[2][1], 100, fs)
         g_sum = g_wave0 + g_wave1
         g_bin = fsk_demodulate(g_sum, freqs[2][0], freqs[2][1], BAUD, fs)
+        # np.save(f'bins/received_gch{i+1}.npy', g_bin)
         # Blue channel
         b_wave0 = filter_freq(wave, freqs[3][0], 100, fs)
         b_wave1 = filter_freq(wave, freqs[3][1], 100, fs)
         b_sum = b_wave0 + b_wave1
         b_bin = fsk_demodulate(b_sum, freqs[3][0], freqs[3][1], BAUD, fs)
+        # np.save(f'bins/received_bch{i+1}.npy', b_bin)
         # Image Assembly c:
         # print(len(r_bin), len(g_bin), len(b_bin))
         colorlist = [r_bin, g_bin, b_bin]
