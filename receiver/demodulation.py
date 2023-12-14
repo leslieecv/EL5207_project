@@ -182,7 +182,7 @@ def main():
         text_wave1 = filter_freq(wave, freqs[0][1], 100, fs)
         wave_sum = text_wave0 + text_wave1
         text_bin = fsk_demodulate(wave_sum, freqs[0][0], freqs[0][1], BAUD, fs)
-        print(text_bin)
+        print(type(text_bin))
         # np.save(f'bins/received_txt{i+1}.npy', text_bin)
         decod = decode.Decoding(text_bin, mode='text')
         # print(text_bin[-10:])
@@ -219,9 +219,9 @@ def main():
         decod = decode.Decoding(colorlist, mode='image')
         decod_ch = decod.decod_data
         plt.imshow(decod_ch, cmap='gray')
-        # plt.title(titles[i], fontsize=20)
+        plt.title(titles[i], fontsize=20)
         plt.axis('off')
-        # plt.savefig(f"result{1 + i}.pdf", bbox_inches='tight')
+        plt.savefig(f"exp_result{1 + i}.pdf", bbox_inches='tight')
         plt.show()
         plt.clf() 
     pass
