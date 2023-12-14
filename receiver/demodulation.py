@@ -26,7 +26,7 @@ FREQUENCIES = [
      [6783, 8763],  # R
      [7277, 9257], # G
      [7773, 9753],]] # B
-BAUD = 40
+BAUD = 42
 ANS_DIC = {"y":1, "n":0}
 
 """
@@ -43,7 +43,7 @@ def record(seconds: int, fs: int, filename = "output.wav"):
 """
 Filtering function
 """
-def filter_freq(signal, freq, window, fs = SAMPLE_FREQ, order = 8):
+def filter_freq(signal, freq, window, fs = SAMPLE_FREQ, order = 5):
     filter = scipy.signal.butter(order, [freq - window, freq + window], "bandpass", fs = fs, output = "sos")
     filtered = scipy.signal.sosfiltfilt(filter, signal)
     return filtered
@@ -135,7 +135,7 @@ def sample_sync(audio, max_corr, max_idx, ref):
 #
 def sync_detect(audio, sync_freq, mode = "img"):
     # Filter in the frequency
-    wave0 = filter_freq(audio, np.mean(sync_freq), 100, SAMPLE_FREQ)
+    wave0 = filter_freq(audio, np.mean(sync_freq), np.mean(sync_freq) - 1, SAMPLE_FREQ)
     # _, _, _, _ = plt.specgram(wave0, Fs = SAMPLE_FREQ, scale = 'linear')
     # plt.show()
     # wave1 = filter_freq(audio, sync_freq[1], 50, SAMPLE_FREQ)
@@ -158,7 +158,7 @@ def sync_detect(audio, sync_freq, mode = "img"):
         end, _ = signal.find_peaks(corr_end, distance = 44100, height = (np.max(corr_end)*0.8, np.max(corr_end)))
         end = end[0]
         while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
-            if ((end - (start + len(ref_init))) >= (samples_per_bit*4)):
+            if ((end - (start + len(ref_init)))%(samples_per_bit*8) > (samples_per_bit*4)):
                 end+=1
             else:
                 end-=1
@@ -172,7 +172,7 @@ def sync_detect(audio, sync_freq, mode = "img"):
         end = end[1]
 
         while ((end - (start + len(ref_init)))%(samples_per_bit*8) != 0):
-            if ((end - (start + len(ref_init))) >= (samples_per_bit*4)):
+            if ((end - (start + len(ref_init)))%(samples_per_bit*8) > (samples_per_bit*4)):
                 end+=1
             else:
                 end-=1
@@ -191,7 +191,7 @@ def sync_detect(audio, sync_freq, mode = "img"):
 
 # Assembly of functions
 def main():
-    filename = 'D:\GitHub\EL5207_project\\tests\\thirdtest.wav'
+    filename = 'D:\GitHub\EL5207_project\\tests\\fourthtest.wav'
     # listen
     # record(DURATION, SAMPLE_FREQ, filename) 
     # read
